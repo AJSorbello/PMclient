@@ -4,6 +4,8 @@ import { useParams } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
+import { Box, Typography, Button, CircularProgress, TextField, Grid, Card, CardContent, CardMedia } from '@mui/material';
+import { PhotoCamera as PhotoIcon } from '@mui/icons-material';
 
 interface Photo {
   _id: string;
@@ -65,64 +67,103 @@ export default function PhotosPage() {
   };
 
   if (loading) {
-    return <div className="flex justify-center items-center h-64">Loading...</div>;
+    return (
+      <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
+        <CircularProgress />
+      </Box>
+    );
   }
 
   return (
-    <div className="max-w-4xl mx-auto p-6">
-      <div className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-bold">Project Photos</h1>
-        <div className="flex gap-4 items-center">
-          <input
-            type="text"
+    <Box sx={{ maxWidth: 'lg', mx: 'auto', p: 3 }}>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4 }}>
+        <Typography variant="h4" component="h1">
+          Project Photos
+        </Typography>
+        <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
+          <TextField
+            size="small"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             placeholder="Photo title"
-            className="border rounded px-3 py-2"
+            disabled={uploading}
           />
-          <div>
-            <input
-              type="file"
-              accept="image/*"
-              onChange={handleFileChange}
-              className="hidden"
-              id="photo-upload"
+          <input
+            type="file"
+            accept="image/*"
+            onChange={handleFileChange}
+            style={{ display: 'none' }}
+            id="photo-upload"
+            disabled={uploading || !title}
+          />
+          <label htmlFor="photo-upload">
+            <Button
+              variant="contained"
+              component="span"
               disabled={uploading || !title}
-            />
-            <label
-              htmlFor="photo-upload"
-              className={`${
-                uploading || !title
-                  ? 'bg-gray-400'
-                  : 'bg-blue-500 hover:bg-blue-600'
-              } text-white px-4 py-2 rounded cursor-pointer transition`}
+              startIcon={<PhotoIcon />}
             >
               {uploading ? 'Uploading...' : 'Upload Photo'}
-            </label>
-          </div>
-        </div>
-      </div>
+            </Button>
+          </label>
+        </Box>
+      </Box>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {photos.map((photo) => (
-          <div key={photo._id} className="border rounded-lg p-4">
-            <div className="relative aspect-square mb-4">
-              <Image
-                src={photo.url}
-                alt={photo.title}
-                fill
-                className="object-cover rounded-lg"
-              />
-            </div>
-            <div>
-              <h3 className="font-semibold text-lg">{photo.title}</h3>
-              <p className="text-gray-500 text-sm">
-                {new Date(photo.createdAt).toLocaleDateString()}
-              </p>
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
+      {photos.length === 0 ? (
+        <Box 
+          sx={{ 
+            display: 'flex', 
+            flexDirection: 'column', 
+            alignItems: 'center', 
+            justifyContent: 'center',
+            minHeight: '300px',
+            bgcolor: 'background.paper',
+            borderRadius: 1,
+            p: 3,
+            textAlign: 'center'
+          }}
+        >
+          <PhotoIcon sx={{ fontSize: 60, color: 'text.secondary', mb: 2 }} />
+          <Typography variant="h6" color="text.secondary" gutterBottom>
+            No Photos Yet
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            Upload your first photo to get started
+          </Typography>
+        </Box>
+      ) : (
+        <Grid container spacing={3}>
+          {photos.map((photo) => (
+            <Grid item xs={12} sm={6} md={4} key={photo._id}>
+              <Card>
+                <CardMedia
+                  component="div"
+                  sx={{
+                    position: 'relative',
+                    height: 0,
+                    paddingTop: '100%', // 1:1 aspect ratio
+                  }}
+                >
+                  <Image
+                    src={photo.url}
+                    alt={photo.title}
+                    fill
+                    style={{ objectFit: 'cover' }}
+                  />
+                </CardMedia>
+                <CardContent>
+                  <Typography variant="subtitle1" component="h3">
+                    {photo.title}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    {new Date(photo.createdAt).toLocaleDateString()}
+                  </Typography>
+                </CardContent>
+              </Card>
+            </Grid>
+          ))}
+        </Grid>
+      )}
+    </Box>
   );
 }

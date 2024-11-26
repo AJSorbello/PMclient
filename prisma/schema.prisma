@@ -1,0 +1,228 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id              String    @id @default(uuid())
+  name            String
+  email           String    @unique
+  role            String    // 'client', 'manager', 'team_member'
+  managedProjects Project[] @relation("ProjectManager")
+  clientProjects  Project[] @relation("ClientProjects")
+  teamMemberships TeamMember[]
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+}
+
+model Project {
+  id          String   @id @default(uuid())
+  name        String
+  description String
+  status      String   // 'planning', 'in_progress', 'completed', 'on_hold'
+  startDate   DateTime?
+  endDate     DateTime?
+  budget      Float?
+  location    String?
+  client      User     @relation("ClientProjects", fields: [clientId], references: [id])
+  clientId    String
+  teamMembers TeamMember[]
+  manager     User?    @relation("ProjectManager", fields: [managerId], references: [id])
+  managerId   String?
+  tasks       Task[]
+  phases      ProjectPhase[]
+  budgetItems BudgetItem[]
+  timelineEvents TimelineEvent[]
+  resources   Resource[]
+  comments    Comment[]
+  documents   Document[]
+  inspections Inspection[]
+  permits     Permit[]
+  siteDetails SiteDetails?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([clientId])
+  @@index([managerId])
+}
+
+model TeamMember {
+  id        String   @id @default(uuid())
+  user      User     @relation(fields: [userId], references: [id])
+  userId    String
+  project   Project  @relation(fields: [projectId], references: [id])
+  projectId String
+  role      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([projectId])
+}
+
+model Task {
+  id          String   @id @default(uuid())
+  title       String
+  description String
+  status      String   // 'todo', 'in_progress', 'completed'
+  priority    String   // 'low', 'medium', 'high'
+  startDate   DateTime?
+  endDate     DateTime?
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  projectId   String
+  phase       ProjectPhase? @relation(fields: [phaseId], references: [id])
+  phaseId     String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([projectId])
+  @@index([phaseId])
+}
+
+model BudgetItem {
+  id          String   @id @default(uuid())
+  name        String
+  amount      Float
+  type        String   // 'income' or 'expense'
+  category    String
+  status      String   // 'planned', 'approved', 'spent'
+  date        DateTime?
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  projectId   String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([projectId])
+}
+
+model TimelineEvent {
+  id          String   @id @default(uuid())
+  title       String
+  description String
+  date        DateTime
+  type        String
+  status      String
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  projectId   String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([projectId])
+}
+
+model Resource {
+  id          String   @id @default(uuid())
+  name        String
+  type        String   // 'human', 'material', or 'tool'
+  description String
+  quantity    Float
+  unit        String
+  status      String   // 'available', 'in-use', or 'unavailable'
+  assignedTo  String?
+  cost        Float
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  projectId   String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([projectId])
+}
+
+model Comment {
+  id          String   @id @default(uuid())
+  content     String
+  authorId    String
+  authorName  String
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  projectId   String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([projectId])
+}
+
+model ProjectPhase {
+  id          String   @id @default(uuid())
+  name        String
+  description String
+  status      String   // 'not_started', 'in_progress', 'completed'
+  startDate   DateTime?
+  endDate     DateTime?
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  projectId   String
+  tasks       Task[]
+  documents   Document[]
+  order       Int      // To maintain phase sequence
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([projectId])
+}
+
+model Document {
+  id          String   @id @default(uuid())
+  name        String
+  type        String   // 'permit', 'blueprint', 'contract', 'inspection_report', etc.
+  url         String
+  phase       ProjectPhase @relation(fields: [phaseId], references: [id], onDelete: Cascade)
+  phaseId     String
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  projectId   String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([phaseId])
+  @@index([projectId])
+}
+
+model Inspection {
+  id          String   @id @default(uuid())
+  type        String   // 'foundation', 'electrical', 'plumbing', 'final', etc.
+  status      String   // 'scheduled', 'passed', 'failed', 'pending'
+  date        DateTime?
+  inspector   String?
+  notes       String?
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  projectId   String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([projectId])
+}
+
+model Permit {
+  id          String   @id @default(uuid())
+  type        String   // 'demolition', 'construction', 'electrical', etc.
+  status      String   // 'pending', 'approved', 'rejected'
+  number      String?
+  issuedDate  DateTime?
+  expiryDate  DateTime?
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  projectId   String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([projectId])
+}
+
+model SiteDetails {
+  id              String   @id @default(uuid())
+  project         Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  projectId       String   @unique
+  address         String
+  zoning          String?
+  lotSize         Float?   // in square feet/meters
+  existingStructure Boolean @default(true)
+  soilType        String?
+  utilities       String?  // Serialized utility status
+  surveyDetails   String?  // Serialized survey data
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}

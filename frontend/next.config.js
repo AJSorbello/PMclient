@@ -1,8 +1,5 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  experimental: {
-    serverActions: true,
-  },
   images: {
     domains: [
       'localhost',
@@ -13,6 +10,7 @@ const nextConfig = {
     config.resolve.alias = {
       ...config.resolve.alias,
       '@/lib': require('path').resolve(__dirname, './lib'),
+      '@/components': require('path').resolve(__dirname, './components'),
     };
     return config;
   },

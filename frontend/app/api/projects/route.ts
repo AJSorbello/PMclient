@@ -65,44 +65,48 @@ export async function POST(request: NextRequest) {
     // Create project data with all required and optional fields
     const projectData: Prisma.ProjectCreateInput = {
       name: data.name.trim(),
-      description: data.type || 'New Project',
-      status: 'PLANNING',
-      priority: 'MEDIUM',
-      phase: 'PLANNING',
-      progress: 0,
-      riskLevel: 'MEDIUM',
+      description: data.type || 'Residential',
+      status: 'planning', 
+      startDate: now,
+      endDate: null,
       budget: data.budget ? Number(data.budget) : 0,
-      actualCost: 0,
-      grandTotal: 0,
+      location: data.location || null,
       
-      // Explicitly set all date fields to undefined
-      startDate: undefined,
-      endDate: undefined,
-      appointmentDate: undefined,
-      actualStartDate: undefined,
-      actualEndDate: undefined,
+      // Required client relation
+      client: {
+        connect: {
+          id: defaultUser.id 
+        }
+      },
       
-      // Optional location fields
-      location: null,
-      street: null,
-      city: null,
-      state: null,
-      zipCode: null,
-      country: 'USA',
-      
-      // Optional estimate fields
-      coverage: null,
-      policyNumber: null,
-      deductible: 0,
-      rcv: 0,
-      acv: 0,
-      depreciation: 0,
-      
-      // Connect to default user as manager
+      // Optional manager relation
       manager: {
         connect: {
           id: defaultUser.id
         }
+      },
+      
+      // Initialize empty relations
+      teamMembers: {
+        create: []
+      },
+      tasks: {
+        create: []
+      },
+      phases: {
+        create: []
+      },
+      budgetItems: {
+        create: []
+      },
+      timelineEvents: {
+        create: []
+      },
+      resources: {
+        create: []
+      },
+      comments: {
+        create: []
       },
       
       // Timestamps

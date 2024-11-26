@@ -3,6 +3,10 @@
 import { useParams } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import ProjectSidebar from '@/components/ProjectSidebar';
+import WeatherWidget from '@/components/WeatherWidget';
+import MapComponent from '@/components/MapComponent';
+import { Box, Grid, Paper, Typography } from '@mui/material';
 
 interface Project {
   id: string;
@@ -11,6 +15,12 @@ interface Project {
   status: 'active' | 'completed' | 'on-hold';
   startDate: string;
   endDate?: string;
+  address?: string;
+  budget: number;
+  manager?: {
+    name: string | null;
+    email: string;
+  } | null;
 }
 
 export default function ProjectPage() {
@@ -41,52 +51,87 @@ export default function ProjectPage() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto p-6">
-      <div className="mb-8">
-        <div className="flex justify-between items-center">
-          <h1 className="text-3xl font-bold">{project.name}</h1>
-          <span className={`px-3 py-1 rounded-full text-sm ${
-            project.status === 'active' ? 'bg-green-100 text-green-800' :
-            project.status === 'completed' ? 'bg-blue-100 text-blue-800' :
-            'bg-yellow-100 text-yellow-800'
-          }`}>
-            {project.status.charAt(0).toUpperCase() + project.status.slice(1)}
-          </span>
-        </div>
-        <p className="text-gray-600 mt-2">{project.description}</p>
-        <div className="flex gap-4 mt-4 text-sm text-gray-500">
-          <p>Start Date: {new Date(project.startDate).toLocaleDateString()}</p>
-          {project.endDate && (
-            <p>End Date: {new Date(project.endDate).toLocaleDateString()}</p>
-          )}
-        </div>
-      </div>
+    <Box sx={{ display: 'flex', minHeight: '100vh' }}>
+      <ProjectSidebar project={project} />
       
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <Link 
-          href={`/projects/${projectId}/photos`}
-          className="p-4 border rounded-lg hover:bg-gray-50 transition"
-        >
-          <h2 className="text-xl font-semibold mb-2">Photos</h2>
-          <p className="text-gray-600">View project photos</p>
-        </Link>
+      <Box component="main" sx={{ flexGrow: 1, p: 3, marginLeft: '280px' }}>
+        <Grid container spacing={3}>
+          {/* Project Header */}
+          <Grid item xs={12}>
+            <Paper sx={{ p: 3, mb: 3 }}>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                <Typography variant="h4" component="h1">{project.name}</Typography>
+                <Box sx={{
+                  px: 2,
+                  py: 0.5,
+                  borderRadius: 2,
+                  bgcolor: project.status === 'active' ? 'success.light' :
+                           project.status === 'completed' ? 'info.light' : 'warning.light',
+                  color: project.status === 'active' ? 'success.dark' :
+                         project.status === 'completed' ? 'info.dark' : 'warning.dark'
+                }}>
+                  {project.status.charAt(0).toUpperCase() + project.status.slice(1)}
+                </Box>
+              </Box>
+              <Typography color="text.secondary" sx={{ mb: 2 }}>{project.description}</Typography>
+              <Box sx={{ display: 'flex', gap: 3, color: 'text.secondary' }}>
+                <Typography>Start Date: {new Date(project.startDate).toLocaleDateString()}</Typography>
+                {project.endDate && (
+                  <Typography>End Date: {new Date(project.endDate).toLocaleDateString()}</Typography>
+                )}
+              </Box>
+            </Paper>
+          </Grid>
 
-        <Link 
-          href={`/projects/${projectId}/sketches`}
-          className="p-4 border rounded-lg hover:bg-gray-50 transition"
-        >
-          <h2 className="text-xl font-semibold mb-2">Sketches</h2>
-          <p className="text-gray-600">View project sketches</p>
-        </Link>
+          {/* Weather Widget */}
+          <Grid item xs={12} md={4}>
+            <Paper sx={{ p: 2, height: '100%' }}>
+              <Typography variant="h6" sx={{ mb: 2 }}>Weather at Project Site</Typography>
+              <WeatherWidget location={project.address || 'New York, NY'} />
+            </Paper>
+          </Grid>
 
-        <Link 
-          href={`/projects/${projectId}/estimates`}
-          className="p-4 border rounded-lg hover:bg-gray-50 transition"
-        >
-          <h2 className="text-xl font-semibold mb-2">Estimates</h2>
-          <p className="text-gray-600">View project estimates</p>
-        </Link>
-      </div>
-    </div>
+          {/* Map Component */}
+          <Grid item xs={12} md={8}>
+            <Paper sx={{ p: 2, height: '100%' }}>
+              <Typography variant="h6" sx={{ mb: 2 }}>Project Location</Typography>
+              <Box sx={{ height: 400 }}>
+                <MapComponent address={project.address || '123 Eva St, Downstairs, Bathroom'} />
+              </Box>
+            </Paper>
+          </Grid>
+
+          {/* Quick Links */}
+          <Grid item xs={12}>
+            <Grid container spacing={2}>
+              <Grid item xs={12} md={4}>
+                <Link href={`/projects/${projectId}/photos`}>
+                  <Paper sx={{ p: 3, cursor: 'pointer', '&:hover': { bgcolor: 'grey.50' } }}>
+                    <Typography variant="h6">Photos</Typography>
+                    <Typography color="text.secondary">View project photos</Typography>
+                  </Paper>
+                </Link>
+              </Grid>
+              <Grid item xs={12} md={4}>
+                <Link href={`/projects/${projectId}/sketches`}>
+                  <Paper sx={{ p: 3, cursor: 'pointer', '&:hover': { bgcolor: 'grey.50' } }}>
+                    <Typography variant="h6">Sketches</Typography>
+                    <Typography color="text.secondary">View project sketches</Typography>
+                  </Paper>
+                </Link>
+              </Grid>
+              <Grid item xs={12} md={4}>
+                <Link href={`/projects/${projectId}/estimates`}>
+                  <Paper sx={{ p: 3, cursor: 'pointer', '&:hover': { bgcolor: 'grey.50' } }}>
+                    <Typography variant="h6">Estimates</Typography>
+                    <Typography color="text.secondary">View project estimates</Typography>
+                  </Paper>
+                </Link>
+              </Grid>
+            </Grid>
+          </Grid>
+        </Grid>
+      </Box>
+    </Box>
   );
 }
