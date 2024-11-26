@@ -1,0 +1,521 @@
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id             String           @id @default(cuid())
+  name           String?
+  email          String           @unique
+  emailVerified  DateTime?
+  image          String?
+  hashedPassword String?
+  role           String           @default("USER")
+  projects       Project[]        
+  tasks          Task[]           
+  teamMemberships TeamMember[]    
+  comments       Comment[]        
+  resources      Resource[]       
+  notifications  Notification[]
+  documents      Document[]
+  photos         Photo[]
+  sketches       Sketch[]
+  estimates      Estimate[]
+  approvedEstimates Estimate[]    @relation("ApprovedEstimates")
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+}
+
+model Project {
+  id              String           @id @default(cuid())
+  name            String
+  description     String?
+  startDate       DateTime
+  endDate         DateTime?
+  actualStartDate DateTime?
+  actualEndDate   DateTime?
+  budget          Float?
+  actualCost      Float?
+  priority        String          @default("MEDIUM")
+  status          String          @default("PLANNING")
+  phase           String          @default("PLANNING")
+  progress        Float           @default(0)
+  riskLevel       String          @default("MEDIUM")
+  
+  // Estimate details
+  grandTotal      Float           @default(0)
+  coverage        String?         // Type of insurance coverage
+  policyNumber    String?
+  deductible      Float?
+  rcv             Float?          // Replacement Cost Value
+  acv             Float?          // Actual Cash Value
+  depreciation    Float?
+  
+  // Location details
+  street          String
+  city            String
+  state           String
+  zipCode         String
+  country         String          @default("USA")
+  
+  // Project structure
+  manager         User            @relation(fields: [managerId], references: [id])
+  managerId       String
+  team            TeamMember[]
+  tasks           Task[]
+  milestones      Milestone[]
+  dependencies    Dependency[]
+  resources       Resource[]
+  documents       Document[]
+  invoices        Invoice[]
+  permits         Permit[]
+  inspections     Inspection[]
+  materials       Material[]
+  contractors     Contractor[]
+  risks           Risk[]
+  issues          Issue[]
+  comments        Comment[]
+  changeRequests  ChangeRequest[]
+  meetings        Meeting[]
+  workingDays     WorkingDays[]
+  holidays        Holiday[]
+  photos          Photo[]         
+  sketches        Sketch[]        
+  estimates       Estimate[]      
+  
+  // Tracking
+  timeline        Timeline[]
+  budgetHistory   BudgetEntry[]
+  activityLog     ActivityLog[]
+  
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+}
+
+model Task {
+  id              String         @id @default(cuid())
+  name            String
+  description     String?
+  startDate       DateTime
+  endDate         DateTime
+  actualStartDate DateTime?
+  actualEndDate   DateTime?
+  duration        Int            // in days
+  progress        Float          @default(0)
+  priority        String         @default("MEDIUM")
+  status          String         @default("NOT_STARTED")
+  estimatedHours  Float?
+  actualHours     Float?
+  cost            Float?
+  
+  project         Project        @relation(fields: [projectId], references: [id])
+  projectId       String
+  assignee        User?          @relation(fields: [assigneeId], references: [id])
+  assigneeId      String?
+  dependencies    Dependency[]   @relation("DependentTask")
+  dependents      Dependency[]   @relation("DependencyTask")
+  comments        Comment[]
+  resources       Resource[]
+  materials       Material[]
+  contractors     Contractor[]
+  milestone       Milestone?     @relation(fields: [milestoneId], references: [id])
+  milestoneId     String?
+  timeline        Timeline[]
+  
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+}
+
+model TeamMember {
+  id        String   @id @default(cuid())
+  role      String   @default("MEMBER")
+  joinedAt  DateTime @default(now())
+  leftAt    DateTime?
+  
+  user      User     @relation(fields: [userId], references: [id])
+  userId    String
+  project   Project  @relation(fields: [projectId], references: [id])
+  projectId String
+  
+  @@unique([userId, projectId])
+}
+
+model Resource {
+  id          String    @id @default(cuid())
+  name        String
+  type        String    
+  quantity    Float
+  unit        String?
+  cost        Float?
+  available   Boolean   @default(true)
+  notes       String?
+  
+  project     Project   @relation(fields: [projectId], references: [id])
+  projectId   String
+  manager     User      @relation(fields: [managerId], references: [id])
+  managerId   String
+  tasks       Task[]
+  
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model Document {
+  id          String    @id @default(cuid())
+  name        String
+  type        String    
+  url         String
+  version     String
+  size        Int
+  uploadedBy  User      @relation(fields: [uploadedById], references: [id])
+  uploadedById String
+  project     Project   @relation(fields: [projectId], references: [id])
+  projectId   String
+  tags        String    // Store as comma-separated values
+  permits     Permit[]
+  inspections Inspection[]
+  contractors Contractor[]
+  
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model Meeting {
+  id          String    @id @default(cuid())
+  title       String
+  date        DateTime
+  duration    Int       // in minutes
+  location    String?
+  project     Project   @relation(fields: [projectId], references: [id])
+  projectId   String
+  attendees   String    // Store as comma-separated values
+  notes       String?
+  
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model Dependency {
+  id            String  @id @default(cuid())
+  type          String  
+  lag           Int     @default(0) // in days
+  
+  project       Project @relation(fields: [projectId], references: [id])
+  projectId     String
+  dependentTask Task    @relation("DependentTask", fields: [dependentTaskId], references: [id])
+  dependentTaskId String
+  dependencyTask Task   @relation("DependencyTask", fields: [dependencyTaskId], references: [id])
+  dependencyTaskId String
+  
+  @@unique([dependentTaskId, dependencyTaskId])
+}
+
+model Milestone {
+  id          String         @id @default(cuid())
+  name        String
+  description String?
+  dueDate     DateTime
+  status      String
+  project     Project        @relation(fields: [projectId], references: [id])
+  projectId   String
+  tasks       Task[]
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+}
+
+model Risk {
+  id          String    @id @default(cuid())
+  name        String
+  description String?
+  probability String
+  impact      String
+  status      String
+  mitigation  String?
+  project     Project   @relation(fields: [projectId], references: [id])
+  projectId   String
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model Issue {
+  id          String      @id @default(cuid())
+  title       String
+  description String?
+  priority    String
+  status      String
+  project     Project     @relation(fields: [projectId], references: [id])
+  projectId   String
+  assignee    String?
+  dueDate     DateTime?
+  resolution  String?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+}
+
+model ChangeRequest {
+  id          String    @id @default(cuid())
+  title       String
+  description String
+  type        String
+  status      String
+  impact      String?
+  cost        Float?
+  project     Project   @relation(fields: [projectId], references: [id])
+  projectId   String
+  requestedBy String
+  approvedBy  String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model Comment {
+  id        String    @id @default(cuid())
+  content   String
+  user      User      @relation(fields: [userId], references: [id])
+  userId    String
+  project   Project   @relation(fields: [projectId], references: [id])
+  projectId String
+  task      Task?     @relation(fields: [taskId], references: [id])
+  taskId    String?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+model Timeline {
+  id        String    @id @default(cuid())
+  date      DateTime
+  progress  Float
+  project   Project   @relation(fields: [projectId], references: [id])
+  projectId String
+  task      Task?     @relation(fields: [taskId], references: [id])
+  taskId    String?
+  createdAt DateTime  @default(now())
+}
+
+model BudgetEntry {
+  id        String    @id @default(cuid())
+  date      DateTime
+  amount    Float
+  type      String
+  project   Project   @relation(fields: [projectId], references: [id])
+  projectId String
+  description String?
+  createdAt DateTime  @default(now())
+}
+
+model ActivityLog {
+  id        String    @id @default(cuid())
+  action    String
+  details   String?
+  project   Project   @relation(fields: [projectId], references: [id])
+  projectId String
+  userId    String
+  createdAt DateTime  @default(now())
+}
+
+model Invoice {
+  id          String        @id @default(cuid())
+  number      String        @unique
+  amount      Float
+  status      String
+  dueDate     DateTime
+  paidDate    DateTime?
+  description String?
+  project     Project       @relation(fields: [projectId], references: [id])
+  projectId   String
+  items       InvoiceItem[]
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+}
+
+model InvoiceItem {
+  id          String   @id @default(cuid())
+  description String
+  quantity    Float
+  unitPrice   Float
+  total       Float
+  invoice     Invoice  @relation(fields: [invoiceId], references: [id])
+  invoiceId   String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Permit {
+  id           String       @id @default(cuid())
+  type         String
+  number       String?
+  status       String
+  description  String?
+  submitDate   DateTime
+  approvalDate DateTime?
+  expiryDate   DateTime?
+  cost         Float?
+  issuer       String
+  project      Project      @relation(fields: [projectId], references: [id])
+  projectId    String
+  documents    Document[]   
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+}
+
+model Inspection {
+  id          String       @id @default(cuid())
+  type        String
+  date        DateTime
+  inspector   String
+  status      String
+  notes       String?
+  result      String?
+  cost        Float?
+  project     Project      @relation(fields: [projectId], references: [id])
+  projectId   String
+  documents   Document[]   
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+}
+
+model Material {
+  id           String         @id @default(cuid())
+  name         String
+  description  String?
+  type         String
+  quantity     Float
+  unit         String
+  unitCost     Float
+  totalCost    Float
+  supplier     String?
+  orderDate    DateTime?
+  deliveryDate DateTime?
+  status       String 
+  location     String?
+  project      Project        @relation(fields: [projectId], references: [id])
+  projectId    String
+  tasks        Task[]         
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+}
+
+model Contractor {
+  id            String         @id @default(cuid())
+  name          String
+  type          String
+  company       String?
+  contact       String
+  email         String?
+  phone         String?
+  license       String?
+  insurance     String?
+  rate          Float
+  specialties   String        
+  rating        Float?
+  project       Project        @relation(fields: [projectId], references: [id])
+  projectId     String
+  startDate     DateTime?
+  endDate       DateTime?
+  tasks         Task[]         
+  documents     Document[]     
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+}
+
+model Notification {
+  id        String    @id @default(cuid())
+  title     String
+  message   String
+  type      String
+  read      Boolean   @default(false)
+  user      User      @relation(fields: [userId], references: [id])
+  userId    String
+  createdAt DateTime  @default(now())
+}
+
+model WorkingDays {
+  id        String    @id @default(cuid())
+  project   Project   @relation(fields: [projectId], references: [id])
+  projectId String
+  monday    Boolean   @default(true)
+  tuesday   Boolean   @default(true)
+  wednesday Boolean   @default(true)
+  thursday  Boolean   @default(true)
+  friday    Boolean   @default(true)
+  saturday  Boolean   @default(false)
+  sunday    Boolean   @default(false)
+}
+
+model Holiday {
+  id        String    @id @default(cuid())
+  date      DateTime
+  name      String
+  project   Project   @relation(fields: [projectId], references: [id])
+  projectId String
+  createdAt DateTime  @default(now())
+}
+
+model Photo {
+  id          String    @id @default(cuid())
+  url         String
+  caption     String?
+  project     Project   @relation(fields: [projectId], references: [id])
+  projectId   String
+  uploadedBy  User      @relation(fields: [uploadedById], references: [id])
+  uploadedById String
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model Sketch {
+  id          String    @id @default(cuid())
+  title       String
+  description String?
+  url         String
+  type        String    // e.g., "Floor Plan", "Elevation", "Detail"
+  dimensions  String?   // Store dimensions as string instead of JSON
+  scale       String?   // e.g., "1:100"
+  project     Project   @relation(fields: [projectId], references: [id])
+  projectId   String
+  createdBy   User      @relation(fields: [createdById], references: [id])
+  createdById String
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model Estimate {
+  id          String         @id @default(cuid())
+  title       String
+  description String?
+  category    String        // e.g., "Roofing", "Drywall", "Painting"
+  status      String        @default("DRAFT")
+  total       Float
+  markup      Float?
+  overhead    Float?
+  project     Project       @relation(fields: [projectId], references: [id])
+  projectId   String
+  items       EstimateItem[]
+  createdBy   User          @relation(fields: [createdById], references: [id])
+  createdById String
+  approvedBy  User?         @relation("ApprovedEstimates", fields: [approvedById], references: [id])
+  approvedById String?
+  approvedAt  DateTime?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+}
+
+model EstimateItem {
+  id          String    @id @default(cuid())
+  code        String    // Xactimate code
+  description String
+  quantity    Float
+  unit        String    // e.g., "SF", "LF", "EA"
+  unitPrice   Float
+  total       Float
+  notes       String?
+  category    String    // e.g., "Labor", "Material", "Equipment"
+  estimate    Estimate  @relation(fields: [estimateId], references: [id])
+  estimateId  String
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}

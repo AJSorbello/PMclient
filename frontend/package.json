@@ -1,0 +1,43 @@
+{
+  "name": "project-management-frontend",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.700.0",
+    "@aws-sdk/s3-request-presigner": "^3.700.0",
+    "@devexpress/dx-react-core": "^4.0.8",
+    "@devexpress/dx-react-scheduler": "^4.0.8",
+    "@devexpress/dx-react-scheduler-material-ui": "^4.0.8",
+    "@emotion/cache": "^11.11.0",
+    "@emotion/react": "^11.11.3",
+    "@emotion/styled": "^11.11.0",
+    "@headlessui/react": "^1.7.17",
+    "@mui/icons-material": "^5.15.11",
+    "@mui/material": "^5.15.11",
+    "@mui/material-nextjs": "^5.15.11",
+    "@mui/x-date-pickers": "^6.19.7",
+    "@react-google-maps/api": "^2.19.3",
+    "date-fns": "^3.6.0",
+    "dayjs": "^1.11.10",
+    "next": "14.2.18",
+    "react": "^18",
+    "react-dom": "^18",
+    "tailwindcss": "^3.3.0",
+    "typescript": "^5"
+  },
+  "devDependencies": {
+    "@types/node": "^20",
+    "@types/react": "^18",
+    "@types/react-dom": "^18",
+    "autoprefixer": "^10.0.1",
+    "eslint": "^8",
+    "eslint-config-next": "14.2.18",
+    "postcss": "^8"
+  }
+}
