@@ -103,19 +103,14 @@ export default function NewProjectForm() {
         body: JSON.stringify(requestData),
       });
       
+      const responseData = await response.json();
+      console.log('Server response:', responseData);
+      
       if (!response.ok) {
-        const responseData = await response.json();
-        console.error('Server response:', {
-          status: response.status,
-          statusText: response.statusText,
-          data: responseData
-        });
         throw new Error(responseData.error || responseData.details || 'Failed to create project');
       }
 
-      const responseData = await response.json();
       console.log('Project created successfully:', responseData.project);
-      
       router.push('/projects');
     } catch (error: any) {
       console.error('Full error details:', error);

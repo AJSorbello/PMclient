@@ -29,8 +29,8 @@ model User {
   sketches       Sketch[]
   estimates      Estimate[]
   approvedEstimates Estimate[]    @relation("ApprovedEstimates")
-  createdAt      DateTime         @default(now())
-  updatedAt      DateTime         @updatedAt
+  createdAt      DateTime?        @default(now())
+  updatedAt      DateTime?        @updatedAt
 }
 
 model Project {
@@ -98,16 +98,16 @@ model Project {
   activityLog     ActivityLog[]
   
   // Timestamps
-  createdAt       DateTime        @default(now())
-  updatedAt       DateTime        @updatedAt
+  createdAt       DateTime?       @default(now())
+  updatedAt       DateTime?       @updatedAt
 }
 
 model Task {
   id              String         @id @default(cuid())
   name            String
   description     String?
-  startDate       DateTime
-  endDate         DateTime
+  startDate       DateTime?
+  endDate         DateTime?
   actualStartDate DateTime?
   actualEndDate   DateTime?
   duration        Int            @default(0) // in days
@@ -132,14 +132,14 @@ model Task {
   milestoneId     String?
   timeline        Timeline[]
   
-  createdAt       DateTime       @default(now())
-  updatedAt       DateTime       @updatedAt
+  createdAt       DateTime?      @default(now())
+  updatedAt       DateTime?      @updatedAt
 }
 
 model TeamMember {
   id        String   @id @default(cuid())
   role      String   @default("MEMBER")
-  joinedAt  DateTime @default(now())
+  joinedAt  DateTime? @default(now())
   leftAt    DateTime?
   
   user      User     @relation(fields: [userId], references: [id])
@@ -166,8 +166,8 @@ model Resource {
   managerId   String
   tasks       Task[]
   
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  createdAt   DateTime? @default(now())
+  updatedAt   DateTime? @updatedAt
 }
 
 model Document {
@@ -186,14 +186,14 @@ model Document {
   inspections Inspection[]
   contractors Contractor[]
   
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  createdAt   DateTime? @default(now())
+  updatedAt   DateTime? @updatedAt
 }
 
 model Meeting {
   id          String    @id @default(cuid())
   title       String
-  date        DateTime
+  date        DateTime?
   duration    Int       @default(0) // in minutes
   location    String?
   project     Project   @relation(fields: [projectId], references: [id])
@@ -201,8 +201,8 @@ model Meeting {
   attendees   String    // Store as comma-separated values
   notes       String?
   
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  createdAt   DateTime? @default(now())
+  updatedAt   DateTime? @updatedAt
 }
 
 model Dependency {
@@ -224,13 +224,13 @@ model Milestone {
   id          String         @id @default(cuid())
   name        String
   description String?
-  dueDate     DateTime
+  dueDate     DateTime?
   status      String
   project     Project        @relation(fields: [projectId], references: [id])
   projectId   String
   tasks       Task[]
-  createdAt   DateTime       @default(now())
-  updatedAt   DateTime       @updatedAt
+  createdAt   DateTime?      @default(now())
+  updatedAt   DateTime?      @updatedAt
 }
 
 model Risk {
@@ -243,8 +243,8 @@ model Risk {
   mitigation  String?
   project     Project   @relation(fields: [projectId], references: [id])
   projectId   String
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  createdAt   DateTime? @default(now())
+  updatedAt   DateTime? @updatedAt
 }
 
 model Issue {
@@ -258,8 +258,8 @@ model Issue {
   assignee    String?
   dueDate     DateTime?
   resolution  String?
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
+  createdAt   DateTime?   @default(now())
+  updatedAt   DateTime?   @updatedAt
 }
 
 model ChangeRequest {
@@ -274,8 +274,8 @@ model ChangeRequest {
   projectId   String
   requestedBy String
   approvedBy  String?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  createdAt   DateTime? @default(now())
+  updatedAt   DateTime? @updatedAt
 }
 
 model Comment {
@@ -287,30 +287,30 @@ model Comment {
   projectId String
   task      Task?     @relation(fields: [taskId], references: [id])
   taskId    String?
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+  createdAt DateTime? @default(now())
+  updatedAt DateTime? @updatedAt
 }
 
 model Timeline {
   id        String    @id @default(cuid())
-  date      DateTime
+  date      DateTime?
   progress  Float     @default(0)
   project   Project   @relation(fields: [projectId], references: [id])
   projectId String
   task      Task?     @relation(fields: [taskId], references: [id])
   taskId    String?
-  createdAt DateTime  @default(now())
+  createdAt DateTime? @default(now())
 }
 
 model BudgetEntry {
   id        String    @id @default(cuid())
-  date      DateTime
+  date      DateTime?
   amount    Float     @default(0)
   type      String
   project   Project   @relation(fields: [projectId], references: [id])
   projectId String
   description String?
-  createdAt DateTime  @default(now())
+  createdAt DateTime? @default(now())
 }
 
 model ActivityLog {
@@ -320,7 +320,7 @@ model ActivityLog {
   project   Project   @relation(fields: [projectId], references: [id])
   projectId String
   userId    String
-  createdAt DateTime  @default(now())
+  createdAt DateTime? @default(now())
 }
 
 model Invoice {
@@ -328,14 +328,14 @@ model Invoice {
   number      String        @unique
   amount      Float         @default(0)
   status      String
-  dueDate     DateTime
+  dueDate     DateTime?
   paidDate    DateTime?
   description String?
   project     Project       @relation(fields: [projectId], references: [id])
   projectId   String
   items       InvoiceItem[]
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
+  createdAt   DateTime?     @default(now())
+  updatedAt   DateTime?     @updatedAt
 }
 
 model InvoiceItem {
@@ -346,8 +346,8 @@ model InvoiceItem {
   total       Float     @default(0)
   invoice     Invoice  @relation(fields: [invoiceId], references: [id])
   invoiceId   String
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt   DateTime? @default(now())
+  updatedAt   DateTime? @updatedAt
 }
 
 model Permit {
@@ -356,7 +356,7 @@ model Permit {
   number       String?
   status       String
   description  String?
-  submitDate   DateTime
+  submitDate   DateTime?
   approvalDate DateTime?
   expiryDate   DateTime?
   cost         Float?       @default(0)
@@ -364,14 +364,14 @@ model Permit {
   project      Project      @relation(fields: [projectId], references: [id])
   projectId    String
   documents    Document[]   
-  createdAt    DateTime     @default(now())
-  updatedAt    DateTime     @updatedAt
+  createdAt    DateTime?    @default(now())
+  updatedAt    DateTime?    @updatedAt
 }
 
 model Inspection {
   id          String       @id @default(cuid())
   type        String
-  date        DateTime
+  date        DateTime?
   inspector   String
   status      String
   notes       String?
@@ -380,8 +380,8 @@ model Inspection {
   project     Project      @relation(fields: [projectId], references: [id])
   projectId   String
   documents   Document[]   
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
+  createdAt   DateTime?    @default(now())
+  updatedAt   DateTime?    @updatedAt
 }
 
 model Material {
@@ -401,8 +401,8 @@ model Material {
   project      Project        @relation(fields: [projectId], references: [id])
   projectId    String
   tasks        Task[]         
-  createdAt    DateTime       @default(now())
-  updatedAt    DateTime       @updatedAt
+  createdAt    DateTime?      @default(now())
+  updatedAt    DateTime?      @updatedAt
 }
 
 model Contractor {
@@ -424,8 +424,8 @@ model Contractor {
   endDate       DateTime?
   tasks         Task[]         
   documents     Document[]     
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
+  createdAt     DateTime?      @default(now())
+  updatedAt     DateTime?      @updatedAt
 }
 
 model Notification {
@@ -436,7 +436,7 @@ model Notification {
   read      Boolean   @default(false)
   user      User      @relation(fields: [userId], references: [id])
   userId    String
-  createdAt DateTime  @default(now())
+  createdAt DateTime? @default(now())
 }
 
 model WorkingDays {
@@ -454,11 +454,11 @@ model WorkingDays {
 
 model Holiday {
   id        String    @id @default(cuid())
-  date      DateTime
+  date      DateTime?
   name      String
   project   Project   @relation(fields: [projectId], references: [id])
   projectId String
-  createdAt DateTime  @default(now())
+  createdAt DateTime? @default(now())
 }
 
 model Photo {
@@ -469,8 +469,8 @@ model Photo {
   projectId   String
   uploadedBy  User      @relation(fields: [uploadedById], references: [id])
   uploadedById String
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  createdAt   DateTime? @default(now())
+  updatedAt   DateTime? @updatedAt
 }
 
 model Sketch {
@@ -485,8 +485,8 @@ model Sketch {
   projectId   String
   createdBy   User      @relation(fields: [createdById], references: [id])
   createdById String
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  createdAt   DateTime? @default(now())
+  updatedAt   DateTime? @updatedAt
 }
 
 model Estimate {
@@ -506,8 +506,8 @@ model Estimate {
   approvedBy  User?         @relation("ApprovedEstimates", fields: [approvedById], references: [id])
   approvedById String?
   approvedAt  DateTime?
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
+  createdAt   DateTime?     @default(now())
+  updatedAt   DateTime?     @updatedAt
 }
 
 model EstimateItem {
@@ -522,6 +522,6 @@ model EstimateItem {
   category    String    // e.g., "Labor", "Material", "Equipment"
   estimate    Estimate  @relation(fields: [estimateId], references: [id])
   estimateId  String
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  createdAt   DateTime? @default(now())
+  updatedAt   DateTime? @updatedAt
 }
