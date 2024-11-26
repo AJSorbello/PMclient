@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react';
 import {
-  Box,
+  Card,
+  CardContent,
   Typography,
   CircularProgress,
-  Paper,
-  Grid,
-  Tooltip,
+  Box,
+  Alert,
 } from '@mui/material';
 import {
   WbSunny as SunIcon,
@@ -13,153 +13,94 @@ import {
   Opacity as RainIcon,
   AcUnit as SnowIcon,
   Thunderstorm as StormIcon,
-  Warning as WarningIcon,
+  RemoveRedEye as MistIcon,
 } from '@mui/icons-material';
-
-interface WeatherData {
-  current: {
-    temp: number;
-    weather: [{
-      main: string;
-      description: string;
-    }];
-  };
-  daily: Array<{
-    dt: number;
-    temp: {
-      min: number;
-      max: number;
-    };
-    weather: [{
-      main: string;
-      description: string;
-    }];
-  }>;
-}
 
 interface WeatherForecastProps {
   location: string;
 }
 
+interface WeatherData {
+  temperature: number;
+  description: string;
+  icon: string;
+  humidity: number;
+  windSpeed: number;
+  weatherMain: string;
+}
+
 const WeatherForecast = ({ location }: WeatherForecastProps) => {
   const [weatherData, setWeatherData] = useState<WeatherData | null>(null);
-  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  const formatLocation = (loc: string) => {
-    // Remove any extra whitespace and convert to lowercase for consistent processing
-    const cleaned = loc.toLowerCase().trim().replace(/\s+/g, ' ');
+  const formatLocation = (loc: string): string => {
+    // Remove any extra whitespace and normalize
+    const cleaned = loc.trim().replace(/\s+/g, ' ');
     
-    // Extract ZIP code if present
-    const zipMatch = cleaned.match(/\b\d{5}\b/);
-    const zip = zipMatch ? zipMatch[0] : null;
-    
-    // Split the address into components
-    const parts = cleaned.split(',').map(part => part.trim());
-    
-    // For US addresses with state abbreviations
-    const stateMatch = parts.find(part => 
-      part.match(/\b(wa|washington|ca|california|ny|new york|tx|texas)\b/)
-    );
-    
-    // Try to extract city
-    let city = '';
-    if (parts[0].includes('st') || parts[0].includes('ave') || parts[0].includes('road')) {
-      // If first part is a street address, look for city in second part
-      city = parts[1] || '';
-    } else {
-      // Otherwise use first part as city
-      city = parts[0];
+    // Check if we have a valid location string
+    if (!cleaned) {
+      throw new Error('Location is empty');
     }
-    
-    // Clean up city name (remove street numbers and directionals)
-    city = city
-      .replace(/^\d+/, '') // Remove leading numbers
-      .replace(/\b(st|street|ave|avenue|rd|road|nw|ne|sw|se|n|s|e|w)\b/g, '') // Remove street types and directions
-      .trim();
-    
-    // Find state abbreviation
-    let state = '';
-    if (stateMatch) {
-      if (stateMatch.includes('wa') || stateMatch.includes('washington')) {
-        state = 'WA';
-      } else if (stateMatch.includes('ca') || stateMatch.includes('california')) {
-        state = 'CA';
-      } else if (stateMatch.includes('ny') || stateMatch.includes('new york')) {
-        state = 'NY';
-      } else if (stateMatch.includes('tx') || stateMatch.includes('texas')) {
-        state = 'TX';
-      }
-    }
-    
-    // Build the formatted location string
-    let formattedLocation = city.charAt(0).toUpperCase() + city.slice(1); // Capitalize city
-    if (state) {
-      formattedLocation += `, ${state}`;
-    }
-    formattedLocation += ', US'; // Add country code
-    
-    console.log('Original location:', loc);
-    console.log('Formatted location:', formattedLocation);
-    
-    return formattedLocation;
+
+    // Remove any trailing commas and extra spaces
+    return cleaned.replace(/,\s*$/, '').trim();
   };
 
   useEffect(() => {
     const fetchWeatherData = async () => {
-      if (!location) return;
+      if (!location) {
+        setLoading(false);
+        setError('No location provided');
+        return;
+      }
 
-      setLoading(true);
-      setError(null);
+      // Check if API key is available
+      const apiKey = process.env.NEXT_PUBLIC_OPENWEATHER_API_KEY;
+      if (!apiKey) {
+        setError('Weather API key is not configured');
+        setLoading(false);
+        return;
+      }
 
       try {
+        setLoading(true);
+        setError(null);
+
         const formattedLocation = formatLocation(location);
-        console.log('Formatted location:', formattedLocation);
-        
         console.log('Fetching weather for location:', formattedLocation);
-        
-        // First, get coordinates for the location
-        const geocodeUrl = `https://api.openweathermap.org/geo/1.0/direct?q=${encodeURIComponent(
+
+        // Get weather data directly using city name
+        const weatherUrl = `https://api.openweathermap.org/data/2.5/weather?q=${encodeURIComponent(
           formattedLocation
-        )}&limit=1&appid=${process.env.NEXT_PUBLIC_OPENWEATHER_API_KEY}`;
-        
-        console.log('Geocoding URL:', geocodeUrl);
-        
-        const geocodeResponse = await fetch(geocodeUrl);
-        const geocodeData = await geocodeResponse.json();
-        
-        console.log('Geocode response:', geocodeData);
+        )}&units=imperial&appid=${apiKey}`;
 
-        if (!geocodeResponse.ok) {
-          throw new Error(`Failed to fetch location coordinates: ${geocodeResponse.statusText}`);
-        }
-
-        if (!geocodeData || !Array.isArray(geocodeData) || geocodeData.length === 0) {
-          throw new Error(`Location not found: ${formattedLocation}`);
-        }
-
-        const { lat, lon } = geocodeData[0];
-        console.log('Coordinates:', { lat, lon });
-
-        // Then, get weather data for those coordinates
-        const weatherUrl = `https://api.openweathermap.org/data/3.0/onecall?lat=${lat}&lon=${lon}&exclude=minutely,hourly,alerts&units=imperial&appid=${process.env.NEXT_PUBLIC_OPENWEATHER_API_KEY}`;
-        
         console.log('Weather URL:', weatherUrl);
-        
         const weatherResponse = await fetch(weatherUrl);
-        
-        if (!weatherResponse.ok) {
-          const errorText = await weatherResponse.text();
-          throw new Error(`Failed to fetch weather data: ${errorText}`);
+        const weatherResult = await weatherResponse.json();
+
+        console.log('Weather response:', weatherResult);
+
+        if (weatherResult.cod === '401') {
+          throw new Error('Invalid API key. Please check your OpenWeather API key configuration.');
         }
 
-        const data = await weatherResponse.json();
-        console.log('Weather data:', data);
-        
-        setWeatherData(data);
+        if (weatherResult.cod !== 200) {
+          throw new Error(weatherResult.message || 'Failed to fetch weather data');
+        }
+
+        setWeatherData({
+          temperature: Math.round(weatherResult.main.temp),
+          description: weatherResult.weather[0].description,
+          icon: weatherResult.weather[0].icon,
+          humidity: weatherResult.main.humidity,
+          windSpeed: Math.round(weatherResult.wind.speed),
+          weatherMain: weatherResult.weather[0].main,
+        });
       } catch (err) {
-        console.error('Weather fetch error:', err);
-        setError(err instanceof Error ? err.message : 'Failed to load weather data');
+        console.error('Failed to fetch weather data:', err);
+        setError(err instanceof Error ? err.message : 'Failed to fetch weather data');
+        setWeatherData(null);
       } finally {
         setLoading(false);
       }
@@ -171,18 +112,22 @@ const WeatherForecast = ({ location }: WeatherForecastProps) => {
   const getWeatherIcon = (weatherMain: string) => {
     switch (weatherMain.toLowerCase()) {
       case 'clear':
-        return <SunIcon sx={{ color: '#FFD700' }} />;
+        return <SunIcon sx={{ fontSize: 40, color: '#FFD700' }} />;
       case 'clouds':
-        return <CloudIcon sx={{ color: '#A9A9A9' }} />;
+        return <CloudIcon sx={{ fontSize: 40, color: '#A9A9A9' }} />;
       case 'rain':
       case 'drizzle':
-        return <RainIcon sx={{ color: '#4682B4' }} />;
+        return <RainIcon sx={{ fontSize: 40, color: '#4682B4' }} />;
       case 'snow':
-        return <SnowIcon sx={{ color: '#B0E0E6' }} />;
+        return <SnowIcon sx={{ fontSize: 40, color: '#87CEEB' }} />;
       case 'thunderstorm':
-        return <StormIcon sx={{ color: '#4B0082' }} />;
+        return <StormIcon sx={{ fontSize: 40, color: '#4B0082' }} />;
+      case 'mist':
+      case 'fog':
+      case 'haze':
+        return <MistIcon sx={{ fontSize: 40, color: '#B8B8B8' }} />;
       default:
-        return <WarningIcon sx={{ color: '#FF8C00' }} />;
+        return <SunIcon sx={{ fontSize: 40, color: '#FFD700' }} />;
     }
   };
 
@@ -190,66 +135,50 @@ const WeatherForecast = ({ location }: WeatherForecastProps) => {
     return null;
   }
 
-  if (loading) {
-    return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', p: 2 }}>
-        <CircularProgress size={24} />
-      </Box>
-    );
-  }
-
-  if (error) {
-    return (
-      <Box sx={{ p: 2 }}>
-        <Typography color="error" variant="body2">
-          {error}
-        </Typography>
-      </Box>
-    );
-  }
-
-  if (!weatherData) {
-    return null;
-  }
-
   return (
-    <Paper sx={{ p: 2, bgcolor: 'background.default' }}>
-      <Typography variant="subtitle2" gutterBottom>
-        Weather Forecast
-      </Typography>
-      <Grid container spacing={1}>
-        {weatherData.daily.slice(0, 5).map((day, index) => (
-          <Grid item xs={2.4} key={day.dt}>
-            <Tooltip
-              title={`${day.weather[0].description} (High: ${Math.round(
-                day.temp.max
-              )}°F, Low: ${Math.round(day.temp.min)}°F)`}
+    <Card sx={{ minWidth: 275, mb: 2 }}>
+      <CardContent>
+        <Typography variant="h6" component="div" gutterBottom>
+          Weather Forecast for {location}
+        </Typography>
+        {loading ? (
+          <Box display="flex" justifyContent="center" alignItems="center" p={2}>
+            <CircularProgress />
+          </Box>
+        ) : error ? (
+          <Alert severity="error">
+            {error}
+            {error.includes('API key') && (
+              <Typography variant="caption" display="block" sx={{ mt: 1 }}>
+                Please add your OpenWeather API key to .env.local file as NEXT_PUBLIC_OPENWEATHER_API_KEY
+              </Typography>
+            )}
+          </Alert>
+        ) : weatherData ? (
+          <Box>
+            <Box display="flex" alignItems="center" mb={2}>
+              {getWeatherIcon(weatherData.weatherMain)}
+              <Typography variant="h3" component="span" sx={{ ml: 2 }}>
+                {weatherData.temperature}°F
+              </Typography>
+            </Box>
+            <Typography
+              variant="body1"
+              color="text.secondary"
+              sx={{ textTransform: 'capitalize' }}
             >
-              <Box
-                sx={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  p: 1,
-                }}
-              >
-                <Typography variant="caption">
-                  {index === 0
-                    ? 'Today'
-                    : new Date(day.dt * 1000).toLocaleDateString('en-US', {
-                        weekday: 'short',
-                      })}
-                </Typography>
-                {getWeatherIcon(day.weather[0].main)}
-                <Typography variant="caption">
-                  {Math.round(day.temp.max)}°
-                </Typography>
-              </Box>
-            </Tooltip>
-          </Grid>
-        ))}
-      </Grid>
-    </Paper>
+              {weatherData.description}
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              Humidity: {weatherData.humidity}%
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              Wind Speed: {weatherData.windSpeed} mph
+            </Typography>
+          </Box>
+        ) : null}
+      </CardContent>
+    </Card>
   );
 };
 

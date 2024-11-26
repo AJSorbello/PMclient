@@ -11,11 +11,13 @@ import {
   MenuItem,
   Grid,
   Alert,
+  InputAdornment,
 } from '@mui/material';
 import { CalendarMonth as CalendarIcon } from '@mui/icons-material';
 import dayjs from 'dayjs';
 import AddressFields from '@/components/AddressFields';
 import AppointmentScheduler, { AppointmentData } from '@/components/AppointmentScheduler';
+import WeatherForecast from '@/components/WeatherForecast';
 
 export default function NewProjectPage() {
   const router = useRouter();
@@ -40,9 +42,16 @@ export default function NewProjectPage() {
 
     try {
       // Format the location string for the API
-      const location = formData.streetAddress && formData.city && formData.state && formData.zipCode && formData.country
-        ? `${formData.streetAddress}, ${formData.city}, ${formData.state} ${formData.zipCode}`
+      const location = formData.city && formData.state
+        ? `${formData.city}, ${formData.state}, ${formData.country}`
         : '';
+
+      if (!location) {
+        setError('Please provide at least city and state');
+        return;
+      }
+
+      console.log('Submitting project with location:', location);
 
       const response = await fetch('/api/projects', {
         method: 'POST',
@@ -63,11 +72,13 @@ export default function NewProjectPage() {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to create project');
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to create project');
       }
 
       router.push('/projects');
     } catch (err) {
+      console.error('Error creating project:', err);
       setError(err instanceof Error ? err.message : 'Failed to create project');
     }
   };
@@ -101,33 +112,33 @@ export default function NewProjectPage() {
             <Grid item xs={12}>
               <TextField
                 fullWidth
+                required
                 label="Project Name"
                 value={formData.name}
                 onChange={handleChange('name')}
-                required
+                error={!formData.name}
+                helperText={!formData.name ? 'Project name is required' : ''}
               />
             </Grid>
 
             <Grid item xs={12}>
               <TextField
                 fullWidth
+                multiline
+                rows={4}
                 label="Description"
                 value={formData.description}
                 onChange={handleChange('description')}
-                multiline
-                rows={4}
-                required
               />
             </Grid>
 
-            <Grid item xs={12} sm={6}>
+            <Grid item xs={12}>
               <TextField
-                select
                 fullWidth
+                select
                 label="Status"
                 value={formData.status}
                 onChange={handleChange('status')}
-                required
               >
                 <MenuItem value="planning">Planning</MenuItem>
                 <MenuItem value="in_progress">In Progress</MenuItem>
@@ -136,7 +147,7 @@ export default function NewProjectPage() {
               </TextField>
             </Grid>
 
-            <Grid item xs={12} sm={6}>
+            <Grid item xs={12}>
               <TextField
                 fullWidth
                 label="Budget"
@@ -144,10 +155,31 @@ export default function NewProjectPage() {
                 value={formData.budget}
                 onChange={handleChange('budget')}
                 InputProps={{
-                  startAdornment: <span>$</span>,
+                  startAdornment: <InputAdornment position="start">$</InputAdornment>,
                 }}
               />
             </Grid>
+
+            <Grid item xs={12}>
+              <AddressFields
+                streetAddress={formData.streetAddress}
+                city={formData.city}
+                state={formData.state}
+                zipCode={formData.zipCode}
+                country={formData.country}
+                onStreetAddressChange={(value) => setFormData({ ...formData, streetAddress: value })}
+                onCityChange={(value) => setFormData({ ...formData, city: value })}
+                onStateChange={(value) => setFormData({ ...formData, state: value })}
+                onZipCodeChange={(value) => setFormData({ ...formData, zipCode: value })}
+                onCountryChange={(value) => setFormData({ ...formData, country: value })}
+              />
+            </Grid>
+
+            {formData.city && formData.state && (
+              <Grid item xs={12}>
+                <WeatherForecast location={`${formData.city}, ${formData.state}, ${formData.country}`} />
+              </Grid>
+            )}
 
             <Grid item xs={12}>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
@@ -166,24 +198,6 @@ export default function NewProjectPage() {
                   </Typography>
                 )}
               </Box>
-            </Grid>
-
-            <Grid item xs={12}>
-              <Typography variant="h6" gutterBottom>
-                Project Location
-              </Typography>
-              <AddressFields
-                streetAddress={formData.streetAddress}
-                city={formData.city}
-                state={formData.state}
-                zipCode={formData.zipCode}
-                country={formData.country}
-                onStreetAddressChange={(value) => setFormData({ ...formData, streetAddress: value })}
-                onCityChange={(value) => setFormData({ ...formData, city: value })}
-                onStateChange={(value) => setFormData({ ...formData, state: value })}
-                onZipCodeChange={(value) => setFormData({ ...formData, zipCode: value })}
-                onCountryChange={(value) => setFormData({ ...formData, country: value })}
-              />
             </Grid>
 
             <Grid item xs={12}>
