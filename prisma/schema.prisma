@@ -46,6 +46,7 @@ model Project {
   inspections Inspection[]
   permits     Permit[]
   siteDetails SiteDetails?
+  appointments Appointment[]
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -213,16 +214,27 @@ model Permit {
 }
 
 model SiteDetails {
-  id              String   @id @default(uuid())
-  project         Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  projectId       String   @unique
-  address         String
-  zoning          String?
-  lotSize         Float?   // in square feet/meters
-  existingStructure Boolean @default(true)
-  soilType        String?
-  utilities       String?  // Serialized utility status
-  surveyDetails   String?  // Serialized survey data
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  id             String   @id @default(uuid())
+  project        Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  projectId      String   @unique
+  siteConditions String?  // Serialized site condition data
+  accessibility  String?  // Serialized accessibility info
+  utilities      String?  // Serialized utility status
+  surveyDetails  String?  // Serialized survey data
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model Appointment {
+  id          String   @id @default(uuid())
+  type        String   // 'Initial Consultation', 'Site Visit', 'Project Review', etc.
+  date        DateTime
+  time        DateTime
+  notes       String?
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  projectId   String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([projectId])
 }

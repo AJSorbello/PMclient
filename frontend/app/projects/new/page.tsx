@@ -12,18 +12,20 @@ import {
   Grid,
   Alert,
 } from '@mui/material';
+import { CalendarMonth as CalendarIcon } from '@mui/icons-material';
+import dayjs from 'dayjs';
 import AddressFields from '@/components/AddressFields';
-import NewProjectForm from '@/components/Projects/NewProjectForm';
+import AppointmentScheduler, { AppointmentData } from '@/components/AppointmentScheduler';
 
 export default function NewProjectPage() {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
+  const [isAppointmentDialogOpen, setIsAppointmentDialogOpen] = useState(false);
+  const [appointmentData, setAppointmentData] = useState<AppointmentData | null>(null);
   const [formData, setFormData] = useState({
     name: '',
     description: '',
     status: 'planning',
-    startDate: '',
-    endDate: '',
     budget: '',
     streetAddress: '',
     city: '',
@@ -51,6 +53,12 @@ export default function NewProjectPage() {
           ...formData,
           budget: formData.budget ? Number(formData.budget) : null,
           location,
+          appointment: appointmentData ? {
+            type: appointmentData.type,
+            date: appointmentData.date,
+            time: appointmentData.time,
+            notes: appointmentData.notes,
+          } : null,
         }),
       });
 
@@ -68,6 +76,11 @@ export default function NewProjectPage() {
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => {
     setFormData({ ...formData, [field]: e.target.value });
+  };
+
+  const handleScheduleAppointment = (data: AppointmentData) => {
+    setAppointmentData(data);
+    setIsAppointmentDialogOpen(false);
   };
 
   return (
@@ -136,30 +149,23 @@ export default function NewProjectPage() {
               />
             </Grid>
 
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="Start Date"
-                type="date"
-                value={formData.startDate}
-                onChange={handleChange('startDate')}
-                InputLabelProps={{
-                  shrink: true,
-                }}
-              />
-            </Grid>
-
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="End Date"
-                type="date"
-                value={formData.endDate}
-                onChange={handleChange('endDate')}
-                InputLabelProps={{
-                  shrink: true,
-                }}
-              />
+            <Grid item xs={12}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                <Button
+                  variant="outlined"
+                  startIcon={<CalendarIcon />}
+                  onClick={() => setIsAppointmentDialogOpen(true)}
+                >
+                  Schedule Appointment
+                </Button>
+                {appointmentData && (
+                  <Typography variant="body2" color="text.secondary">
+                    {appointmentData.type} scheduled for{' '}
+                    {dayjs(appointmentData.date).format('MMM D, YYYY')} at{' '}
+                    {dayjs(appointmentData.time).format('h:mm A')}
+                  </Typography>
+                )}
+              </Box>
             </Grid>
 
             <Grid item xs={12}>
@@ -200,6 +206,12 @@ export default function NewProjectPage() {
           </Grid>
         </form>
       </Paper>
+
+      <AppointmentScheduler
+        open={isAppointmentDialogOpen}
+        onClose={() => setIsAppointmentDialogOpen(false)}
+        onSchedule={handleScheduleAppointment}
+      />
     </Box>
   );
 }

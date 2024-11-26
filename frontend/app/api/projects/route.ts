@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import prisma from '../../../lib/prisma';
-import { Prisma } from '@prisma/client';
+import { PrismaClient } from '@prisma/client';
+
+const prisma = new PrismaClient();
 
 export async function GET(request: NextRequest) {
   try {
@@ -31,6 +32,8 @@ export async function GET(request: NextRequest) {
       { error: 'Failed to fetch projects', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
     );
+  } finally {
+    await prisma.$disconnect();
   }
 }
 
@@ -63,30 +66,22 @@ export async function POST(request: NextRequest) {
     const now = new Date();
 
     // Create project data with all required and optional fields
-    const projectData: Prisma.ProjectCreateInput = {
+    const projectData = {
       name: data.name.trim(),
-      description: data.type || 'Residential',
-      status: 'planning', 
-      startDate: now,
-      endDate: null,
-      budget: data.budget ? Number(data.budget) : 0,
+      description: data.description || '',
+      status: data.status || 'planning',
+      budget: data.budget ? Number(data.budget) : null,
       location: data.location || null,
-      
-      // Required client relation
       client: {
         connect: {
           id: defaultUser.id 
         }
       },
-      
-      // Optional manager relation
       manager: {
         connect: {
           id: defaultUser.id
         }
       },
-      
-      // Initialize empty relations
       teamMembers: {
         create: []
       },
@@ -99,17 +94,6 @@ export async function POST(request: NextRequest) {
       budgetItems: {
         create: []
       },
-      timelineEvents: {
-        create: []
-      },
-      resources: {
-        create: []
-      },
-      comments: {
-        create: []
-      },
-      
-      // Timestamps
       createdAt: now,
       updatedAt: now
     };
@@ -123,16 +107,18 @@ export async function POST(request: NextRequest) {
         name: true,
         description: true,
         status: true,
-        priority: true,
-        phase: true,
-        progress: true,
-        riskLevel: true,
         budget: true,
-        actualCost: true,
-        grandTotal: true,
+        location: true,
         createdAt: true,
         updatedAt: true,
         manager: {
+          select: {
+            id: true,
+            name: true,
+            email: true
+          }
+        },
+        client: {
           select: {
             id: true,
             name: true,
@@ -142,42 +128,38 @@ export async function POST(request: NextRequest) {
       }
     });
 
-    console.log('Project created:', project);
+    // Create appointment if provided
+    if (data.appointment) {
+      const appointment = await prisma.appointment.create({
+        data: {
+          type: data.appointment.type,
+          date: new Date(data.appointment.date),
+          time: new Date(data.appointment.time),
+          notes: data.appointment.notes || '',
+          project: {
+            connect: {
+              id: project.id
+            }
+          }
+        }
+      });
+      console.log('Appointment created:', appointment);
+    }
+
+    console.log('Project created successfully:', project);
     return NextResponse.json({ success: true, project });
     
   } catch (error) {
-    console.error('Full error details:', error);
-    
-    if (error instanceof Prisma.PrismaClientKnownRequestError) {
-      return NextResponse.json(
-        { 
-          error: 'Database error',
-          code: error.code,
-          details: error.message,
-          meta: error.meta
-        },
-        { status: 400 }
-      );
+    console.error('Error creating project:', error);
+    if (error instanceof Error) {
+      console.error('Error message:', error.message);
+      console.error('Error stack:', error.stack);
     }
-    
-    if (error instanceof Prisma.PrismaClientValidationError) {
-      const errorMessage = error.message;
-      console.error('Validation error details:', errorMessage);
-      return NextResponse.json(
-        { 
-          error: 'Invalid data provided',
-          details: errorMessage
-        },
-        { status: 400 }
-      );
-    }
-    
     return NextResponse.json(
-      { 
-        error: 'Failed to create project',
-        details: error instanceof Error ? error.message : 'Unknown error'
-      },
+      { error: 'Failed to create project', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
     );
+  } finally {
+    await prisma.$disconnect();
   }
 }
