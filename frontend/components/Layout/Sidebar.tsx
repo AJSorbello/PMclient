@@ -196,7 +196,8 @@ export default function Sidebar({ open, onClose, selectedProjectId }: SidebarPro
             width: drawerWidth,
             boxSizing: 'border-box',
             borderRight: `1px solid ${theme.palette.divider}`,
-            backgroundColor: theme.palette.background.default,
+            backgroundColor: theme.palette.background.paper,
+            backgroundImage: 'none',
           },
         }}
       >

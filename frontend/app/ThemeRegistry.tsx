@@ -10,6 +10,7 @@ import { useState } from 'react';
 import Navbar from '../components/Layout/Navbar';
 import Sidebar from '../components/Layout/Sidebar';
 import Box from '@mui/material/Box';
+import { usePathname } from 'next/navigation';
 
 export default function ThemeRegistry({ children }: { children: React.ReactNode }) {
   const [{ cache, flush }] = useState(() => {
@@ -33,6 +34,7 @@ export default function ThemeRegistry({ children }: { children: React.ReactNode 
   });
 
   const [mobileOpen, setMobileOpen] = useState(false);
+  const pathname = usePathname();
 
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen);
@@ -58,13 +60,21 @@ export default function ThemeRegistry({ children }: { children: React.ReactNode 
     );
   });
 
+  // Extract project ID from pathname if it exists
+  const projectIdMatch = pathname?.match(/\/projects\/([^\/]+)/);
+  const selectedProjectId = projectIdMatch ? projectIdMatch[1] : undefined;
+
   return (
     <CacheProvider value={cache}>
       <ThemeProvider theme={theme}>
         <CssBaseline />
-        <Box sx={{ display: 'flex' }}>
+        <Box sx={{ display: 'flex', minHeight: '100vh', bgcolor: 'background.default' }}>
           <Navbar onMenuClick={handleDrawerToggle} />
-          <Sidebar open={mobileOpen} onClose={handleDrawerToggle} />
+          <Sidebar 
+            open={mobileOpen} 
+            onClose={handleDrawerToggle} 
+            selectedProjectId={selectedProjectId !== 'new' ? selectedProjectId : undefined}
+          />
           <Box
             component="main"
             sx={{
@@ -73,7 +83,6 @@ export default function ThemeRegistry({ children }: { children: React.ReactNode 
               width: { sm: `calc(100% - 240px)` },
               ml: { sm: '240px' },
               mt: '64px',
-              minHeight: 'calc(100vh - 64px)',
               backgroundColor: 'background.default',
             }}
           >

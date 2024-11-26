@@ -1,7 +1,8 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import prisma from '../../../lib/prisma';
+import { Prisma } from '@prisma/client';
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
     const projects = await prisma.project.findMany({
       orderBy: {
@@ -18,25 +19,71 @@ export async function GET() {
   }
 }
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
     const data = await request.json();
+    console.log('Received data:', JSON.stringify(data, null, 2));
+
+    if (!data.name || typeof data.name !== 'string') {
+      return NextResponse.json(
+        { error: 'Project name is required and must be a string' },
+        { status: 400 }
+      );
+    }
+
+    // Create minimal project data
+    const projectData = {
+      name: data.name.trim(),
+      description: data.type || 'New Project',
+      status: 'PLANNING',
+      priority: 'MEDIUM',
+      phase: 'PLANNING',
+      progress: 0,
+      riskLevel: 'MEDIUM',
+      budget: data.budget ? Number(data.budget) : 0,
+      actualCost: 0,
+      grandTotal: 0
+    };
+
+    console.log('Creating project with data:', JSON.stringify(projectData, null, 2));
+
     const project = await prisma.project.create({
-      data: {
-        name: data.name,
-        description: data.description,
-        status: data.status,
-        startDate: new Date(data.startDate),
-        endDate: data.endDate ? new Date(data.endDate) : null,
-        location: data.location,
-        budget: data.budget ? parseFloat(data.budget) : null,
-      },
+      data: projectData,
     });
-    return NextResponse.json(project);
+
+    console.log('Project created:', project);
+    return NextResponse.json({ success: true, project });
+    
   } catch (error) {
-    console.error('Error creating project:', error);
+    console.error('Full error details:', error);
+    
+    if (error instanceof Prisma.PrismaClientKnownRequestError) {
+      return NextResponse.json(
+        { 
+          error: 'Database error',
+          code: error.code,
+          details: error.message,
+          meta: error.meta
+        },
+        { status: 400 }
+      );
+    }
+    
+    if (error instanceof Prisma.PrismaClientValidationError) {
+      return NextResponse.json(
+        { 
+          error: 'Invalid data provided',
+          details: error.message
+        },
+        { status: 400 }
+      );
+    }
+    
     return NextResponse.json(
-      { error: 'Failed to create project' },
+      { 
+        error: 'Failed to create project',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      },
       { status: 500 }
     );
   }

@@ -12,6 +12,7 @@ import {
   FormControl,
   InputLabel,
   Select,
+  InputAdornment,
 } from '@mui/material';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { useRouter } from 'next/navigation';
@@ -21,10 +22,12 @@ import type { Dayjs } from 'dayjs';
 interface ProjectFormData {
   name: string;
   type: string;
-  address: string;
+  street: string;
+  city: string;
+  state: string;
+  zipCode: string;
   appointmentDate: Dayjs | null;
-  startDate: Dayjs | null;
-  endDate: Dayjs | null;
+  budget: string | null;
 }
 
 const projectTypes = [
@@ -36,15 +39,25 @@ const projectTypes = [
   'Other'
 ];
 
+const states = [
+  'AL', 'AK', 'AZ', 'AR', 'CA', 'CO', 'CT', 'DE', 'FL', 'GA',
+  'HI', 'ID', 'IL', 'IN', 'IA', 'KS', 'KY', 'LA', 'ME', 'MD',
+  'MA', 'MI', 'MN', 'MS', 'MO', 'MT', 'NE', 'NV', 'NH', 'NJ',
+  'NM', 'NY', 'NC', 'ND', 'OH', 'OK', 'OR', 'PA', 'RI', 'SC',
+  'SD', 'TN', 'TX', 'UT', 'VT', 'VA', 'WA', 'WV', 'WI', 'WY'
+];
+
 export default function NewProjectForm() {
   const router = useRouter();
   const [formData, setFormData] = useState<ProjectFormData>({
     name: '',
     type: '',
-    address: '',
+    street: '',
+    city: '',
+    state: '',
+    zipCode: '',
     appointmentDate: null,
-    startDate: null,
-    endDate: null,
+    budget: null,
   });
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | { name?: string; value: unknown }>) => {
@@ -57,7 +70,7 @@ export default function NewProjectForm() {
     }
   };
 
-  const handleDateChange = (field: 'appointmentDate' | 'startDate' | 'endDate', date: Dayjs | null) => {
+  const handleDateChange = (field: 'appointmentDate', date: Dayjs | null) => {
     setFormData((prev) => ({
       ...prev,
       [field]: date,
@@ -66,33 +79,47 @@ export default function NewProjectForm() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!formData.name) {
+      alert('Please fill in the project name');
+      return;
+    }
+
     try {
-      // Add your API call here to save the project
-      // const response = await fetch('/api/projects', {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify({
-      //     ...formData,
-      //     appointmentDate: formData.appointmentDate?.toISOString(),
-      //     startDate: formData.startDate?.toISOString(),
-      //     endDate: formData.endDate?.toISOString(),
-      //   }),
-      // });
+      const requestData = {
+        name: formData.name.trim(),
+        type: formData.type || 'Residential',
+        budget: formData.budget ? parseFloat(formData.budget) : 0
+      };
       
-      // if (response.ok) {
-      //   router.push('/projects');
-      // }
+      console.log('Sending request with data:', JSON.stringify(requestData, null, 2));
       
-      // For now, just log the data and redirect
-      console.log('Project Data:', {
-        ...formData,
-        appointmentDate: formData.appointmentDate?.toISOString(),
-        startDate: formData.startDate?.toISOString(),
-        endDate: formData.endDate?.toISOString(),
+      const response = await fetch('/api/projects', {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify(requestData),
       });
+      
+      if (!response.ok) {
+        const responseData = await response.json();
+        console.error('Server response:', {
+          status: response.status,
+          statusText: response.statusText,
+          data: responseData
+        });
+        throw new Error(responseData.error || responseData.details || 'Failed to create project');
+      }
+
+      const responseData = await response.json();
+      console.log('Project created successfully:', responseData.project);
+      
       router.push('/projects');
-    } catch (error) {
-      console.error('Error creating project:', error);
+    } catch (error: any) {
+      console.error('Full error details:', error);
+      alert(`Failed to create project: ${error.message}`);
     }
   };
 
@@ -135,12 +162,54 @@ export default function NewProjectForm() {
 
           <Grid item xs={12}>
             <TextField
-              required
               fullWidth
-              label="Project Address"
-              name="address"
-              value={formData.address}
+              label="Street Address"
+              name="street"
+              value={formData.street}
               onChange={handleInputChange}
+              placeholder="123 Main St"
+            />
+          </Grid>
+
+          <Grid item xs={12} sm={6}>
+            <TextField
+              fullWidth
+              label="City"
+              name="city"
+              value={formData.city}
+              onChange={handleInputChange}
+              placeholder="City"
+            />
+          </Grid>
+
+          <Grid item xs={12} sm={3}>
+            <FormControl fullWidth>
+              <InputLabel id="state-label">State</InputLabel>
+              <Select
+                labelId="state-label"
+                name="state"
+                value={formData.state}
+                label="State"
+                onChange={handleInputChange}
+              >
+                {states.map((state) => (
+                  <MenuItem key={state} value={state}>
+                    {state}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </Grid>
+
+          <Grid item xs={12} sm={3}>
+            <TextField
+              fullWidth
+              label="ZIP Code"
+              name="zipCode"
+              value={formData.zipCode}
+              onChange={handleInputChange}
+              placeholder="12345"
+              inputProps={{ maxLength: 5, pattern: '[0-9]*' }}
             />
           </Grid>
 
@@ -154,20 +223,16 @@ export default function NewProjectForm() {
           </Grid>
 
           <Grid item xs={12} sm={6}>
-            <DatePicker
-              label="Start Date"
-              value={formData.startDate}
-              onChange={(date) => handleDateChange('startDate', date)}
-              slotProps={{ textField: { fullWidth: true } }}
-            />
-          </Grid>
-
-          <Grid item xs={12} sm={6}>
-            <DatePicker
-              label="Projected End Date"
-              value={formData.endDate}
-              onChange={(date) => handleDateChange('endDate', date)}
-              slotProps={{ textField: { fullWidth: true } }}
+            <TextField
+              fullWidth
+              label="Budget"
+              name="budget"
+              value={formData.budget}
+              onChange={handleInputChange}
+              placeholder="Enter budget amount"
+              InputProps={{
+                startAdornment: <InputAdornment position="start">$</InputAdornment>,
+              }}
             />
           </Grid>
 

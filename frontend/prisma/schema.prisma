@@ -1,6 +1,9 @@
+// This is your Prisma schema file
+// Learn more about it in the docs: https://pris.ly/d/prisma-schema
+
 datasource db {
   provider = "sqlite"
-  url      = "file:./dev.db"
+  url      = env("DATABASE_URL")
 }
 
 generator client {
@@ -34,12 +37,14 @@ model Project {
   id              String           @id @default(cuid())
   name            String
   description     String?
-  startDate       DateTime
+  startDate       DateTime?        
   endDate         DateTime?
+  appointmentDate DateTime?        // Initial consultation date
   actualStartDate DateTime?
   actualEndDate   DateTime?
-  budget          Float?
-  actualCost      Float?
+  budget          Float?           @default(0)
+  actualCost      Float?           @default(0)
+  location        String?         // Project location
   priority        String          @default("MEDIUM")
   status          String          @default("PLANNING")
   phase           String          @default("PLANNING")
@@ -50,21 +55,21 @@ model Project {
   grandTotal      Float           @default(0)
   coverage        String?         // Type of insurance coverage
   policyNumber    String?
-  deductible      Float?
-  rcv             Float?          // Replacement Cost Value
-  acv             Float?          // Actual Cash Value
-  depreciation    Float?
+  deductible      Float?          @default(0)
+  rcv             Float?          @default(0)          // Replacement Cost Value
+  acv             Float?          @default(0)          // Actual Cash Value
+  depreciation    Float?          @default(0)
   
   // Location details
-  street          String
-  city            String
-  state           String
-  zipCode         String
-  country         String          @default("USA")
+  street          String?
+  city            String?
+  state           String?
+  zipCode         String?
+  country         String?         @default("USA")
   
   // Project structure
-  manager         User            @relation(fields: [managerId], references: [id])
-  managerId       String
+  manager         User?           @relation(fields: [managerId], references: [id])
+  managerId       String?
   team            TeamMember[]
   tasks           Task[]
   milestones      Milestone[]
@@ -92,6 +97,7 @@ model Project {
   budgetHistory   BudgetEntry[]
   activityLog     ActivityLog[]
   
+  // Timestamps
   createdAt       DateTime        @default(now())
   updatedAt       DateTime        @updatedAt
 }
@@ -104,13 +110,13 @@ model Task {
   endDate         DateTime
   actualStartDate DateTime?
   actualEndDate   DateTime?
-  duration        Int            // in days
+  duration        Int            @default(0) // in days
   progress        Float          @default(0)
   priority        String         @default("MEDIUM")
   status          String         @default("NOT_STARTED")
-  estimatedHours  Float?
-  actualHours     Float?
-  cost            Float?
+  estimatedHours  Float?         @default(0)
+  actualHours     Float?         @default(0)
+  cost            Float?         @default(0)
   
   project         Project        @relation(fields: [projectId], references: [id])
   projectId       String
@@ -148,9 +154,9 @@ model Resource {
   id          String    @id @default(cuid())
   name        String
   type        String    
-  quantity    Float
+  quantity    Float     @default(0)
   unit        String?
-  cost        Float?
+  cost        Float?    @default(0)
   available   Boolean   @default(true)
   notes       String?
   
@@ -170,7 +176,7 @@ model Document {
   type        String    
   url         String
   version     String
-  size        Int
+  size        Int       @default(0)
   uploadedBy  User      @relation(fields: [uploadedById], references: [id])
   uploadedById String
   project     Project   @relation(fields: [projectId], references: [id])
@@ -188,7 +194,7 @@ model Meeting {
   id          String    @id @default(cuid())
   title       String
   date        DateTime
-  duration    Int       // in minutes
+  duration    Int       @default(0) // in minutes
   location    String?
   project     Project   @relation(fields: [projectId], references: [id])
   projectId   String
@@ -263,7 +269,7 @@ model ChangeRequest {
   type        String
   status      String
   impact      String?
-  cost        Float?
+  cost        Float?    @default(0)
   project     Project   @relation(fields: [projectId], references: [id])
   projectId   String
   requestedBy String
@@ -288,7 +294,7 @@ model Comment {
 model Timeline {
   id        String    @id @default(cuid())
   date      DateTime
-  progress  Float
+  progress  Float     @default(0)
   project   Project   @relation(fields: [projectId], references: [id])
   projectId String
   task      Task?     @relation(fields: [taskId], references: [id])
@@ -299,7 +305,7 @@ model Timeline {
 model BudgetEntry {
   id        String    @id @default(cuid())
   date      DateTime
-  amount    Float
+  amount    Float     @default(0)
   type      String
   project   Project   @relation(fields: [projectId], references: [id])
   projectId String
@@ -320,7 +326,7 @@ model ActivityLog {
 model Invoice {
   id          String        @id @default(cuid())
   number      String        @unique
-  amount      Float
+  amount      Float         @default(0)
   status      String
   dueDate     DateTime
   paidDate    DateTime?
@@ -335,9 +341,9 @@ model Invoice {
 model InvoiceItem {
   id          String   @id @default(cuid())
   description String
-  quantity    Float
-  unitPrice   Float
-  total       Float
+  quantity    Float     @default(0)
+  unitPrice   Float     @default(0)
+  total       Float     @default(0)
   invoice     Invoice  @relation(fields: [invoiceId], references: [id])
   invoiceId   String
   createdAt   DateTime @default(now())
@@ -353,7 +359,7 @@ model Permit {
   submitDate   DateTime
   approvalDate DateTime?
   expiryDate   DateTime?
-  cost         Float?
+  cost         Float?       @default(0)
   issuer       String
   project      Project      @relation(fields: [projectId], references: [id])
   projectId    String
@@ -370,7 +376,7 @@ model Inspection {
   status      String
   notes       String?
   result      String?
-  cost        Float?
+  cost        Float?       @default(0)
   project     Project      @relation(fields: [projectId], references: [id])
   projectId   String
   documents   Document[]   
@@ -383,10 +389,10 @@ model Material {
   name         String
   description  String?
   type         String
-  quantity     Float
+  quantity     Float         @default(0)
   unit         String
-  unitCost     Float
-  totalCost    Float
+  unitCost     Float?        @default(0)
+  totalCost    Float?        @default(0)
   supplier     String?
   orderDate    DateTime?
   deliveryDate DateTime?
@@ -409,9 +415,9 @@ model Contractor {
   phone         String?
   license       String?
   insurance     String?
-  rate          Float
+  rate          Float         @default(0)
   specialties   String        
-  rating        Float?
+  rating        Float?        @default(0)
   project       Project        @relation(fields: [projectId], references: [id])
   projectId     String
   startDate     DateTime?
@@ -489,9 +495,9 @@ model Estimate {
   description String?
   category    String        // e.g., "Roofing", "Drywall", "Painting"
   status      String        @default("DRAFT")
-  total       Float
-  markup      Float?
-  overhead    Float?
+  total       Float         @default(0)
+  markup      Float?        @default(0)
+  overhead    Float?        @default(0)
   project     Project       @relation(fields: [projectId], references: [id])
   projectId   String
   items       EstimateItem[]
@@ -508,10 +514,10 @@ model EstimateItem {
   id          String    @id @default(cuid())
   code        String    // Xactimate code
   description String
-  quantity    Float
+  quantity    Float     @default(0)
   unit        String    // e.g., "SF", "LF", "EA"
-  unitPrice   Float
-  total       Float
+  unitPrice   Float     @default(0)
+  total       Float     @default(0)
   notes       String?
   category    String    // e.g., "Labor", "Material", "Equipment"
   estimate    Estimate  @relation(fields: [estimateId], references: [id])
