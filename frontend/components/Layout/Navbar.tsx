@@ -10,6 +10,8 @@ import {
   useMediaQuery,
 } from '@mui/material';
 import MenuIcon from '@mui/icons-material/Menu';
+import HomeIcon from '@mui/icons-material/Home';
+import Link from 'next/link';
 
 interface NavbarProps {
   onMenuClick: () => void;
@@ -39,6 +41,15 @@ export default function Navbar({ onMenuClick }: NavbarProps) {
             <MenuIcon />
           </IconButton>
         )}
+        <IconButton
+          color="inherit"
+          component={Link}
+          href="/"
+          edge="start"
+          sx={{ mr: 2 }}
+        >
+          <HomeIcon />
+        </IconButton>
         <Typography variant="h6" noWrap component="div">
           Project Management
         </Typography>
